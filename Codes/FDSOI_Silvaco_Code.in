@@ -1,0 +1,80 @@
+go atlas 
+mesh space.mult = 1.0
+
+# X mesh setup
+x.mesh loc= 0.00 spac = 0.005
+x.mesh loc = 0.025 spac = 0.005
+x.mesh loc = 0.045 spac = 0.001
+x.mesh loc = 0.055 spac = 0.001
+x.mesh loc = 0.075 spac = 0.005
+x.mesh loc = 0.10 spac = 0.005
+
+# Y mesh setup
+y.mesh loc = 0.00 spac = 0.00005
+y.mesh loc = 0.025 spac = 0.0007
+y.mesh loc = 0.045 spac = 0.001
+y.mesh loc = 0.055 spac = 0.001
+y.mesh loc = 0.075 spac = 0.001
+y.mesh loc = 0.10 spac = 0.001
+
+# Regions
+region num=1 material=air x.min=0.00 y.min=0.00
+region num=2 material=SiO2 x.min=0.040 x.max=0.060 y.min=0.002 y.max=0.005
+region num=3 material=silicon x.min=0.00 x.max=0.10 y.min=0.005 y.max=0.015
+region num=4 material=SiO2 x.min=0.00 x.max=0.10 y.min=0.015 y.max=0.045
+region num=5 material=silicon x.min=0.00 x.max=0.10 y.min=0.045 y.max=0.100
+
+# Electrodes
+electrode name=gate x.min=0.040 x.max=0.060 y.min=0.00 y.max=0.002
+electrode name=source x.min=0.00 x.max=0.010 y.min=0.002 y.max=0.005
+electrode name=drain x.min=0.090 x.max=0.10 y.min=0.002 y.max=0.005
+
+# Doping
+doping uniform concentration= 1E18 p.type region=5
+doping uniform concentration= 1E20 n.type x.min=0.00 x.max=0.040 y.min=0.005 y.max=0.015
+doping uniform concentration= 1E18 p.type x.min=0.040 x.max=0.060 y.min=0.005 y.max=0.015
+doping uniform concentration= 1E20 n.type x.min=0.060 x.max=0.100 y.min=0.005 y.max=0.015
+
+
+
+# Contacts and work function
+contact name = gate workfun=4.6
+contact name = source workfun=3.9
+contact name = drain 
+
+# Models
+models conmob srh auger bgn fldmob print CVT
+
+# Output fields
+output val.band con.band qfn qfp e.field j.electron j.hole j.conduction j.total ex.field ey.field flowline e.mobility h.mobility qss e.temp h.temp j.disp
+
+# Solution method
+method newton trap 
+
+
+# Initial solve conditions
+solve init
+solve prev 
+solve name=drain vdrain=0 vstep=0.1 vfinal=1.00
+#solve name=gate vgate=0 vstep=0.1 vfinal=0.65
+
+# Ramp gate voltage
+log       outf=FDSOI_mos2.log master
+solve     name=gate  vgate=-0.8 vstep=0.1 vfinal=1.0 
+#ac freq = 1e6
+#solve     name=drain  vdrain=0 vstep=0.1 vfinal=0.65
+
+#Plot resultant IDVG threshold voltage curve 
+tonyplot    FDSOI_mos2.log 
+
+save outf = FDSOI_mosfet.str
+tonyplot FDSOI_mosfet.str
+
+# Extract threshold voltage and subthreshold slope
+extract name="subvt" (1.0/slope(maxslope(curve(v."gate",log10(abs(i."drain"))))))
+extract name="vt" x.val from curve((v."gate"),log10(abs(i."drain"))) where y.val=-7
+extract name="Ionn_n" y.val from curve(v."gate",i."drain") where x.val=1.0
+extract name="Ioff_n" y.val from curve(v."gate", i."drain") where x.val=0
+
+
+quit
