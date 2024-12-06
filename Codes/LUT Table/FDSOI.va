@@ -1,0 +1,26 @@
+`include "constants.vams"
+`include "disciplines.vams"
+
+module fdsoi(g,d,s) ;
+
+inout g,d,s;
+electrical g,d,s ;
+parameter real w=1;
+real Ids, Cgs, Cgd, Qgs, Qgd, Qg;
+integer out_file;
+
+analog begin
+ Ids=$table_model(V(d,s), (V(g,s)), "EE614_Id_FDSOI.tbl","1LL,1LL");
+ Cgd=$table_model(V(d,s), (V(g,s)), "EE614_CGD_FDSOI.tbl","1LL,1LL");
+ Cgs=$table_model(V(d,s), (V(g,s)), "EE614_CGS_FDSOI.tbl","1LL,1LL");
+
+ Qgd = (w*1*Cgd)*(V(g,d));
+ Qgs = (w*1*Cgs)*(V(g,s));
+ Qg=Qgs+Qgd;
+ I(d,s) <+ Ids;
+ I(g,d) <+ ddt(Qgd);
+ I(g,s) <+ ddt(Qgs);
+end
+
+endmodule
+
